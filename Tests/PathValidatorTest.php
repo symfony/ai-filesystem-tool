@@ -164,6 +164,34 @@ class PathValidatorTest extends TestCase
         $this->assertSame($this->fixturesPath, $validator->getBasePath());
     }
 
+    public function testGetBasePathAnchorsRelativePathToWorkingDirectory()
+    {
+        $originalWorkingDirectory = getcwd();
+
+        try {
+            chdir($this->fixturesPath.'/nested');
+            $validator = new PathValidator('..');
+            chdir('/');
+
+            $this->assertSame(realpath($this->fixturesPath), $validator->getBasePath());
+            $this->assertSame(realpath($this->fixturesPath.'/sample.txt'), $validator->validate('sample.txt'));
+        } finally {
+            if (false !== $originalWorkingDirectory) {
+                chdir($originalWorkingDirectory);
+            }
+        }
+    }
+
+    public function testConstructWithNonExistentBasePath()
+    {
+        $validator = new PathValidator($this->fixturesPath.'/missing');
+
+        $this->expectException(PathSecurityException::class);
+        $this->expectExceptionMessage('does not exist');
+
+        $validator->validate('sample.txt');
+    }
+
     public function testValidateThrowsOnSiblingDirectoryWithSharedPrefix()
     {
         $base = sys_get_temp_dir().'/'.uniqid('fsdemo_', true).'/data';

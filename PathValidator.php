@@ -22,17 +22,27 @@ use Symfony\Component\Finder\Finder;
  */
 final class PathValidator
 {
+    private readonly string $basePath;
+
     /**
      * @param list<string> $allowedExtensions Extensions that are allowed (e.g., ['txt', 'md']). Empty means all allowed.
      * @param list<string> $deniedExtensions  Extensions that are denied (e.g., ['php', 'exe']).
      * @param list<string> $deniedPatterns    Glob patterns for files to deny (e.g., ['.*', '*.env*', '.git/*']), matched against the base-relative path and each of its ancestor directories.
      */
     public function __construct(
-        private readonly string $basePath,
+        string $basePath,
         private readonly array $allowedExtensions = [],
         private readonly array $deniedExtensions = ['php', 'phar', 'sh', 'exe', 'bat'],
         private readonly array $deniedPatterns = ['.*', '*.env*'],
     ) {
+        $workingDirectory = getcwd();
+
+        // Anchor a relative base path, as the tool itself can move the working directory
+        if (Path::isRelative($basePath) && false !== $workingDirectory) {
+            $basePath = Path::makeAbsolute($basePath, $workingDirectory);
+        }
+
+        $this->basePath = $basePath;
     }
 
     /**
